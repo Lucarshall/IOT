@@ -1,0 +1,90 @@
+// -----------------------------
+// Sistema de Controle de Semáforo
+// -----------------------------
+// Este código controla um semáforo para carros e pedestres, utilizando um sensor ultrassônico para detectar a presença de veículos ou pedestres.
+// O semáforo alterna entre as luzes verdes e vermelhas com base em temporização e detecção de proximidade.
+
+#include <Arduino.h>
+
+// Declarando variáveis que não mudarão
+const int ledGreenCar = 8;   // Porta do LED Verde do semáforo dos carros 
+const int ledYellowCar = 10; // Porta do LED Amarelo do semáforo dos carros 
+const int ledRedCar = 12;    // Porta do LED Vermelho do semáforo dos carros 
+
+const int ledGreenPed = 6;   // Porta do LED Verde do semáforo dos pedestres 
+const int ledRedPed = 4;     // Porta do LED Vermelho do semáforo dos pedestres 
+
+const int sensorEcho = 9;    // Porta Echo do sensor ultrassônico
+const int sensorTrig = 7;    // Porta Trigger do sensor ultrassônico
+
+// Declarando variáveis que mudarão
+unsigned long tempo;    // Guarda o momento em que o programa iniciou
+
+// Função de configuração inicial
+void setup() {
+  tempo = millis(); // Atribui à variável tempo o valor do início do programa
+  
+  // Configura os pinos dos LEDs como saídas
+  pinMode(ledGreenCar, OUTPUT);
+  pinMode(ledYellowCar, OUTPUT);
+  pinMode(ledRedCar, OUTPUT);
+  
+  pinMode(ledGreenPed, OUTPUT);
+  pinMode(ledRedPed, OUTPUT);
+  
+  // Configura os pinos do sensor ultrassônico
+  pinMode(sensorTrig, OUTPUT);
+  pinMode(sensorEcho, INPUT);
+
+  // Inicializa o semáforo
+  digitalWrite(ledGreenCar, HIGH);  // Acende a luz verde do semáforo dos carros
+  digitalWrite(ledRedPed, HIGH);    // Acende a luz vermelha do semáforo dos pedestres
+}
+
+// Função principal em loop
+void loop() {
+  // Verifica a distância do sensor ultrassônico
+  long distancia = calculaDistancia();
+
+  // Verifica se passaram 5 segundos ou se o sensor detectou algo a menos de 50 cm
+  if ((millis() - tempo) > 5000 || distancia < 50) { 
+    if (distancia < 50) { // Se o sensor detectou um objeto
+      // Transição do semáforo
+      digitalWrite(ledGreenCar, LOW);    // Apaga a luz verde do semáforo dos carros
+      digitalWrite(ledYellowCar, HIGH);  // Acende a luz amarela do semáforo dos carros
+      delay(2000);                       // Espera de 2 segundos
+      digitalWrite(ledYellowCar, LOW);   // Apaga a luz amarela do semáforo dos carros
+      digitalWrite(ledRedCar, HIGH);     // Acende a luz vermelha do semáforo dos carros
+      delay(1000);                       // Espera de 1 segundo
+      digitalWrite(ledRedPed, LOW);      // Apaga a luz vermelha do semáforo dos pedestres
+      digitalWrite(ledGreenPed, HIGH);   // Acende a luz verde do semáforo dos pedestres
+      
+      delay(15000);                      // Espera de 15 segundos enquanto o semáforo de pedestres está verde
+
+      // Retorno ao estado inicial
+      digitalWrite(ledGreenPed, LOW);    // Apaga a luz verde do semáforo dos pedestres   
+      digitalWrite(ledRedPed, HIGH);     // Acende a luz vermelha do semáforo dos pedestres
+      delay(500);                        // Espera de 0,5 segundos
+      
+      digitalWrite(ledRedCar, LOW);      // Apaga a luz vermelha do semáforo dos carros
+      digitalWrite(ledGreenCar, HIGH);   // Acende a luz verde do semáforo dos carros
+            
+      tempo = millis();                  // Atualiza o valor atribuído ao tempo
+    }
+  }
+  delay(10); // Pequena pausa para evitar sobrecarga da CPU
+}
+
+// Função para calcular a distância com o sensor ultrassônico
+long calculaDistancia() {
+  digitalWrite(sensorTrig, LOW);  // Garante que o trigger esteja em nível baixo
+  delayMicroseconds(2);
+  digitalWrite(sensorTrig, HIGH); // Envia um pulso de 10µs para o trigger
+  delayMicroseconds(10);
+  digitalWrite(sensorTrig, LOW);
+  
+  long duracao = pulseIn(sensorEcho, HIGH);  // Recebe o tempo que o pulso levou para retornar
+  long distancia = duracao * 0.034 / 2;      // Calcula a distância em centímetros
+  
+  return distancia;  // Retorna a distância calculada
+}
